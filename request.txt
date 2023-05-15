@@ -1,0 +1,16 @@
+
+//? User 
+api/user/register => POST
+api/user/login => POST
+api/user/all-users => GET
+api/user/:id => GET
+api/user/:id -> DELETE
+api/user/update-user => PUT or PATCH
+
+
+//? Product 
+api/product => POST
+api/product/all-product => GET
+api/product/:id => GET
+api/product/:id => PUT
+api/product/:id => DELETE
