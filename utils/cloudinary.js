@@ -8,7 +8,7 @@ cloudinary.config({
   api_secret: process.env.API_SECRET,
 });
 
-//? upload
+//? upload file
 const cloudinaryUploadImage = async (FileToUploads) => {
   // upload image
   return new Promise((resolve) => {
@@ -24,5 +24,22 @@ const cloudinaryUploadImage = async (FileToUploads) => {
     });
   });
 };
+//? delete file
+const cloudinaryDeleteImage = async (fileToDelete) => {
+  return new Promise((resolve) => {
+    cloudinary.uploader.destroy(fileToDelete, (result) => {
+      resolve(
+        {
+          url: result.secure_url,
+          asset_id: result.asset_id,
+          public_id: result.public_id,
+        },
+        {
+          resource_type: "auto",
+        }
+      );
+    });
+  });
+};
 
-module.exports = {cloudinaryUploadImage};
+module.exports = {cloudinaryUploadImage,cloudinaryDeleteImage};

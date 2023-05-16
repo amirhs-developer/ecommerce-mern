@@ -1,4 +1,7 @@
 const User = require("../models/userModel");
+const Product = require("../models/productModel");
+const Cart = require("../models/cartModel");
+const Coupon = require("../models/couponModel");
 const asyncHandler = require("express-async-handler"); // for handling async error 
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken"); // jsonwebtoken for authentication
@@ -8,6 +11,7 @@ const {generateRefreshToken} = require('../config/refreshToken') // generate ref
 const validateMongodbId = require('../utils/validateMongodbId'); // validation of mongodb id
 const crypto = require("crypto");
 const sendEmailToUser = require("./emailController");
+const uniqid = require("uniqid");
 
 //? SignUp User
 const createUser = asyncHandler(async (req, res) => {
@@ -253,6 +257,186 @@ const saveAddressUser = asyncHandler(async (req, res, next) => {
   }
 })
 
+//? Add user cart
+const userCart = asyncHandler(async (req,res) => {
+  const {cart} = req.body;
+  const {_id} = req.user;
+  validateMongodbId(_id);
+  try{
+    let products = [];
+    const user = await User.findById(_id);
+    // check if user already have product in cart 
+    const alreadyExistCart = await Cart.findOne({orderBy: user?._id});
+    if(alreadyExistCart){
+      alreadyExistCart.deleteOne({orderBy: user?._id});
+    }
+    for(let i=0; i< cart.length; i++){
+      let object = {};
+      object.product = cart[i]._id;
+      object.count = cart[i].count;
+      object.color = cart[i].color;
+      let getPrice = await Product.findById(cart[i]._id).select('price').exec();
+      object.price = getPrice.price;
+      products.push(object);
+    }
+    let cartTotal = 0;
+    for(let i=0; i<products.length; i++){
+      cartTotal = cartTotal + products[i].price * products[i].count;
+    }
+    console.log(products,cartTotal);
+    let AddNewCart = new Cart({
+      products: products,
+      cartTotal: cartTotal,
+      orderBy: user?._id, 
+    });
+    AddNewCart = await AddNewCart.save();
+    res.json(AddNewCart);
+  }catch(error){
+    throw new Error(error);
+  }
+})
+
+//? get User Cart (Cart List of User)
+const getUserCart = asyncHandler(async(req,res) => {
+  const {_id} = req.user;
+  validateMongodbId(_id);
+  try{
+    const cart = await Cart.findOne({orderBy: _id}).populate(
+      "products.product"
+    )
+    res.json(cart);
+  }catch(error){
+    throw new Error(error);
+  }
+})
+
+//? empty Cart 
+const emptyCart = asyncHandler(async (req,res) => {
+  const {_id} = req.user;
+  validateMongodbId(_id);
+  try{
+    const user = await User.findOne(_id);
+    const cart = await Cart.findOneAndRemove({orderBy: user?._id});
+    res.json(cart);
+  }catch(error){
+    throw new Error(error);
+  }
+})
+
+//? Apply Coupon
+const applyCoupon = asyncHandler(async (req,res) => {
+  const {_id} = req.user;
+  const {coupon} = req.body;
+  validateMongodbId(_id);
+  try{
+    const findCoupon = await Coupon.findOne({name: coupon});
+    console.log(findCoupon);
+    if(findCoupon === null){
+      throw new Error('Coupon not found');
+    } else {
+      const user = await User.findOne({_id});
+      const cartOfUser = await Cart.findOne({orderBy: user?._id});
+      if(!cartOfUser){
+        throw new Error('not product selected');
+      }
+      let {products,cartTotal} = await Cart.findOne({orderBy: user?._id})
+      .populate('products.product');
+      let totalAfterDiscount = (
+        cartTotal - (cartTotal * findCoupon.discount) / 100
+      ).toFixed(2);
+      await Cart.findOneAndUpdate(
+        {orderBy: user?._id},
+        {totalAfterDiscount},
+        {new: true}
+      )
+      res.json(totalAfterDiscount);
+    }
+  }catch(error){
+    throw new Error(error);
+  }
+})
+
+
+const createOrder = asyncHandler(async (req, res) => {
+  const { COD, couponApplied } = req.body;
+  const { _id } = req.user;
+  validateMongoDbId(_id);
+  try {
+    if (!COD) throw new Error("Create cash order failed");
+    const user = await User.findById(_id);
+    let userCart = await Cart.findOne({ orderby: user._id });
+    let finalAmout = 0;
+    if (couponApplied && userCart.totalAfterDiscount) {
+      finalAmout = userCart.totalAfterDiscount;
+    } else {
+      finalAmout = userCart.cartTotal;
+    }
+
+    let newOrder = await new Order({
+      products: userCart.products,
+      paymentIntent: {
+        id: uniqid(),
+        method: "COD",
+        amount: finalAmout,
+        status: "Cash on Delivery",
+        created: Date.now(),
+        currency: "usd",
+      },
+      orderby: user._id,
+      orderStatus: "Cash on Delivery",
+    }).save();
+    let update = userCart.products.map((item) => {
+      return {
+        updateOne: {
+          filter: { _id: item.product._id },
+          update: { $inc: { quantity: -item.count, sold: +item.count } },
+        },
+      };
+    });
+    const updated = await Product.bulkWrite(update, {});
+    res.json({ message: "success" });
+  } catch (error) {
+    throw new Error(error);
+  }
+});
+
+
+const getOrderByUserId = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  validateMongoDbId(id);
+  try {
+    const userorders = await Order.findOne({ orderby: id })
+      .populate("products.product")
+      .populate("orderby")
+      .exec();
+    res.json(userorders);
+  } catch (error) {
+    throw new Error(error);
+  }
+});
+
+
+const updateOrderStatus = asyncHandler(async (req, res) => {
+  const { status } = req.body;
+  const { id } = req.params;
+  validateMongoDbId(id);
+  try {
+    const updateOrderStatus = await Order.findByIdAndUpdate(
+      id,
+      {
+        orderStatus: status,
+        paymentIntent: {
+          status: status,
+        },
+      },
+      { new: true }
+    );
+    res.json(updateOrderStatus);
+  } catch (error) {
+    throw new Error(error);
+  }
+});
+
 //? Block a One User
 const blockOneUser = asyncHandler(async (req, res, next) => {
     const {_id} = req.user;
@@ -365,5 +549,12 @@ module.exports = {
   resetPassword,
   loginAdmin,
   getWishListUser,
-  saveAddressUser
+  saveAddressUser,
+  userCart,
+  getUserCart,
+  emptyCart,
+  applyCoupon,
+  createOrder,
+  getOrderByUserId,
+  updateOrderStatus
 };

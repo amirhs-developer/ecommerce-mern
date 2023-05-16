@@ -16,7 +16,12 @@ const {
   resetPassword,
   loginAdmin,
   getWishListUser,
-  saveAddressUser
+  saveAddressUser,
+  userCart,
+  getUserCart,
+  emptyCart,
+  applyCoupon,
+  createOrder
 } = require("../controller/UserController");
 const {
   jwtAuthenticationMiddleware,
@@ -26,6 +31,9 @@ const {
 router.post("/register", createUser);
 router.post("/login", loginUser);
 router.post('/login-admin',loginAdmin);
+router.post('/cart',jwtAuthenticationMiddleware,userCart);
+router.post('/cart/apply-coupon',jwtAuthenticationMiddleware,applyCoupon);
+router.post('/cart/cash-order',jwtAuthenticationMiddleware,createOrder);
 router.put('/password',jwtAuthenticationMiddleware,updatePassword)
 router.post('/forgot-password-token',forgotPasswordToken);
 router.put('/reset-password/:token',resetPassword);
@@ -33,6 +41,7 @@ router.get("/all-users", getAllUsers);
 router.get('/wishlist',jwtAuthenticationMiddleware,getWishListUser);
 router.get("/refresh", refreshTokenHandler);
 router.get("/logout", logout);
+router.get('/get-cart', jwtAuthenticationMiddleware,getUserCart);
 router.get("/:id", jwtAuthenticationMiddleware, isAdminMiddleware, getOneUser);
 router.put("/update-user", jwtAuthenticationMiddleware, updateOneUser);
 router.put('/save-address', jwtAuthenticationMiddleware,saveAddressUser);
@@ -48,6 +57,7 @@ router.put(
   isAdminMiddleware,
   unblockOneUser
 );
+router.delete('/empty-cart', jwtAuthenticationMiddleware, emptyCart);
 router.delete("/:id", deleteOneUser);
 
 module.exports = router;
