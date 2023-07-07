@@ -360,7 +360,7 @@ const applyCoupon = asyncHandler(async (req,res) => {
 const createOrder = asyncHandler(async (req, res) => {
   const { COD, couponApplied } = req.body;
   const { _id } = req.user;
-  validateMongoDbId(_id);
+  validateMongodbId(_id);
   try {
     if (!COD) throw new Error("Create cash order failed");
     const user = await User.findById(_id);
@@ -384,7 +384,8 @@ const createOrder = asyncHandler(async (req, res) => {
       },
       orderby: user._id,
       orderStatus: "Cash on Delivery",
-    }).save();
+    });
+    newOrder = await newOrder.save();
     let update = userCart.products.map((item) => {
       return {
         updateOne: {
@@ -403,7 +404,7 @@ const createOrder = asyncHandler(async (req, res) => {
 
 const getOrderByUserId = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  validateMongoDbId(id);
+  validateMongodbId(id);
   try {
     const userorders = await Order.findOne({ orderby: id })
       .populate("products.product")
@@ -415,11 +416,10 @@ const getOrderByUserId = asyncHandler(async (req, res) => {
   }
 });
 
-
 const updateOrderStatus = asyncHandler(async (req, res) => {
   const { status } = req.body;
   const { id } = req.params;
-  validateMongoDbId(id);
+  validateMongodbId(id);
   try {
     const updateOrderStatus = await Order.findByIdAndUpdate(
       id,

@@ -18,7 +18,7 @@ router.post(
   isAdminMiddleware,
   createBrand
 );
-router.get("/all-brands/", getAllBrand);
+router.get("/all-brands", getAllBrand);
 router.get("/:id", getOneBrand);
 router.put(
   "/:id",

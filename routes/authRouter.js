@@ -21,7 +21,9 @@ const {
   getUserCart,
   emptyCart,
   applyCoupon,
-  createOrder
+  createOrder,
+  getOrderByUserId,
+  updateOrderStatus
 } = require("../controller/UserController");
 const {
   jwtAuthenticationMiddleware,
@@ -37,12 +39,14 @@ router.post('/cart/cash-order',jwtAuthenticationMiddleware,createOrder);
 router.put('/password',jwtAuthenticationMiddleware,updatePassword)
 router.post('/forgot-password-token',forgotPasswordToken);
 router.put('/reset-password/:token',resetPassword);
+router.put('/update-order/:id',jwtAuthenticationMiddleware,isAdminMiddleware,updateOrderStatus);
 router.get("/all-users", getAllUsers);
 router.get('/wishlist',jwtAuthenticationMiddleware,getWishListUser);
 router.get("/refresh", refreshTokenHandler);
 router.get("/logout", logout);
 router.get('/get-cart', jwtAuthenticationMiddleware,getUserCart);
 router.get("/:id", jwtAuthenticationMiddleware, isAdminMiddleware, getOneUser);
+router.get('get-orders',jwtAuthenticationMiddleware,getOrderByUserId);
 router.put("/update-user", jwtAuthenticationMiddleware, updateOneUser);
 router.put('/save-address', jwtAuthenticationMiddleware,saveAddressUser);
 router.put(

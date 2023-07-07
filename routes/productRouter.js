@@ -9,7 +9,8 @@ const {
   deleteOneProduct,
   addToWishList,
   rating,
-  UploadImages
+  UploadImages,
+  deleteImages
 } = require("../controller/ProductController");
 const {
   jwtAuthenticationMiddleware,
@@ -23,12 +24,13 @@ const {
 
 router.post("/", jwtAuthenticationMiddleware, isAdminMiddleware, createProduct);
 router.put(
-  "/upload/:id",
+  "/upload/",
   jwtAuthenticationMiddleware,
   isAdminMiddleware,
   uploadPhoto.array("images", 10),
   productImageResize,
-  UploadImages
+  UploadImages,
+  deleteImages
 );
 router.put("/wishlist", jwtAuthenticationMiddleware, addToWishList);
 router.put("/rating", jwtAuthenticationMiddleware, rating);
@@ -46,5 +48,11 @@ router.delete(
   isAdminMiddleware,
   deleteOneProduct
 );
+router.delete(
+  "/delete-image/:id",
+  jwtAuthenticationMiddleware,
+  isAdminMiddleware,
+  deleteImages
+)
 
 module.exports = router;

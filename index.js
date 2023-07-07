@@ -16,6 +16,8 @@ const categoryRouter = require('./routes/categoryRouter');
 const blogCategoryRouter = require('./routes/blogCategoryRouter');
 const brandRouter = require('./routes/brandRouter');
 const couponRouter = require('./routes/couponRouter');
+const colorRouter = require('./routes/colorRouter');
+const enqRouter = require('./routes/enqRouter');
 
 //* middleware components
 const {notFound} = require('./middleware/errorHandler');
@@ -56,6 +58,9 @@ app.use('/api/category',categoryRouter);
 app.use('/api/blogcategory',blogCategoryRouter);
 app.use('/api/brand',brandRouter);
 app.use('/api/coupon',couponRouter);
+app.use('/api/color/',colorRouter);
+app.use('/api/enquiry',enqRouter);
+
 //* middleware
 app.use(notFound);
 app.use(errorHandler);
